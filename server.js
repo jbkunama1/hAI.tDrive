@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -24,7 +24,7 @@ if (!TELEGRAM_DRIVE_API_KEY) {
 
 // tDrive Passwort (Single-User)
 const PASSWORD_HASH = process.env.PASSWORD_HASH || null;
-// bcrypt-Hash generieren: node -e "require('bcrypt').hash('DEIN_PASSWORT', 10).then(console.log)"
+// bcrypt-Hash generieren: node -e "require('bcryptjs').hash('DEIN_PASSWORT', 10).then(console.log)"
 
 if (!PASSWORD_HASH) {
   console.warn('WARN: Kein PASSWORD_HASH gesetzt. Setze ENV PASSWORD_HASH mit bcrypt-Hash!');
