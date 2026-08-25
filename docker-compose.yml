@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   tdrive:
-    image: ghcr.io/jbkunama1/hai.tdrive:latest
+    image: ghcr.io/jbkunama1/hai.trive:latest
     container_name: tdrive
     restart: unless-stopped
     ports:
