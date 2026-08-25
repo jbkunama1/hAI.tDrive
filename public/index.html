@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0f1420" />
+<title>tDrive - Cloud Drive</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===================== LOGIN SCREEN ===================== -->
+  <div id="login-screen" class="screen login-screen">
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+
+    <div class="login-card fade-in-up">
+      <div class="brand">
+        <div class="brand-logo">t</div>
+        <div class="brand-text">
+          <div class="brand-title">tDrive</div>
+          <div class="brand-sub">tdrive.arbeitermili.eu</div>
+        </div>
+      </div>
+
+      <h1 class="login-headline">Willkommen zurueck</h1>
+      <p class="login-desc">Melde dich mit deinem tDrive-Passwort an, um auf deine Dateien zuzugreifen.</p>
+
+      <form id="login-form" autocomplete="off">
+        <label class="field-label" for="password-input">Passwort</label>
+        <div class="input-wrap">
+          <input
+            id="password-input"
+            type="password"
+            class="text-input"
+            placeholder="********"
+            required
+          />
+          <button type="button" id="toggle-password" class="icon-btn" aria-label="Passwort anzeigen">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+          </button>
+        </div>
+
+        <button type="submit" id="login-btn" class="btn-primary btn-block">
+          <span class="btn-label">Einloggen</span>
+          <span class="btn-spinner hidden"></span>
+        </button>
+
+        <div id="login-status" class="status-text"></div>
+      </form>
+
+      <div class="login-footer">
+        <span class="dot dot-live"></span>
+        <span id="health-text">Verbindung wird geprueft...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== APP SHELL ===================== -->
+  <div id="app-screen" class="screen app-screen hidden">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <button id="menu-btn" class="icon-btn only-mobile" aria-label="Menue">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
+      </button>
+
+      <div class="brand brand-compact">
+        <div class="brand-logo small">t</div>
+        <div class="brand-title small">tDrive</div>
+      </div>
+
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
+        <input id="search-input" type="text" placeholder="In tDrive suchen..." class="search-input" />
+      </div>
+
+      <button id="logout-btn" class="icon-btn" aria-label="Logout">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16 17v-3H9v-4h7V7l5 5-5 5zM14 2a2 2 0 0 1 2 2v2h-2V4H5v16h9v-2h2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9z"/></svg>
+      </button>
+    </header>
+
+    <div class="layout">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar">
+        <button id="new-folder-btn" class="btn-primary btn-block small-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M11 13H5v-2h6V5h2v6h6v2h-6v6h-2v-6z"/></svg>
+          <span>Neuer Ordner</span>
+        </button>
+
+        <label class="upload-drop" id="upload-drop">
+          <input type="file" id="file-input" multiple hidden />
+          <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12 16l4-5h-3V4h-2v7H8l4 5zm-7 2h14v2H5v-2z"/></svg>
+          <span>Datei hochladen</span>
+          <small>oder hierher ziehen</small>
+        </label>
+
+        <nav class="nav-list">
+          <button class="nav-item active" data-view="all">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 4h16v16H4V4zm2 2v12h12V6H6z"/></svg>
+            <span>Alle Dateien</span>
+          </button>
+          <button class="nav-item" data-view="folders">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M10 4l2 2h8v12H4V4h6z"/></svg>
+            <span>Ordner</span>
+          </button>
+          <button class="nav-item" data-view="recent">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2zm1 10.59l4.24 4.24-1.41 1.41L11 13.41V6h2v6.59z"/></svg>
+            <span>Zuletzt</span>
+          </button>
+          <button class="nav-item" data-view="duplicates">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+            <span>Duplikate</span>
+          </button>
+        </nav>
+
+        <div class="storage-card" id="storage-card">
+          <div class="storage-title">Speicher</div>
+          <div class="storage-bar"><div class="storage-bar-fill" id="storage-bar-fill"></div></div>
+          <div class="storage-meta" id="storage-meta">Laedt...</div>
+        </div>
+      </aside>
+
+      <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
+
+      <!-- Main content -->
+      <main class="content">
+        <div class="breadcrumb" id="breadcrumb">
+          <span class="crumb active" data-folder="">Meine Ablage</span>
+        </div>
+
+        <div class="toolbar-row">
+          <div class="toolbar-left">
+            <span id="result-count" class="chip">0 Elemente</span>
+          </div>
+          <div class="toolbar-right">
+            <select id="sort-select" class="select-input">
+              <option value="created_at:desc">Neueste zuerst</option>
+              <option value="created_at:asc">Aelteste zuerst</option>
+              <option value="name:asc">Name A-Z</option>
+              <option value="name:desc">Name Z-A</option>
+              <option value="size:desc">Groesste zuerst</option>
+              <option value="size:asc">Kleinste zuerst</option>
+            </select>
+            <div class="view-toggle">
+              <button id="view-grid" class="view-btn active" aria-label="Rasteransicht">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
+              </button>
+              <button id="view-list" class="view-btn" aria-label="Listenansicht">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 5h16v2H4V5zm0 6h16v2H4v-2zm0 6h16v2H4v-2z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="upload-progress-list" class="upload-progress-list"></div>
+
+        <div id="empty-state" class="empty-state hidden">
+          <div class="empty-illustration">📂</div>
+          <h3>Noch nichts hier</h3>
+          <p>Lade deine erste Datei hoch, um loszulegen.</p>
+        </div>
+
+        <div id="file-grid" class="file-grid"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ===================== CONTEXT MENU ===================== -->
+  <div id="context-menu" class="context-menu hidden">
+    <button data-action="download">⬇️ Herunterladen</button>
+    <button data-action="rename">✏️ Umbenennen</button>
+    <button data-action="move">📁 Verschieben</button>
+    <button data-action="copy">🧾 Kopieren</button>
+    <button data-action="share">🔗 Link teilen</button>
+    <button data-action="delete" class="danger">🗑️ Loeschen</button>
+  </div>
+
+  <!-- ===================== MODALS ===================== -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-box" class="modal-box"></div>
+  </div>
+
+  <!-- ===================== TOASTS ===================== -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
