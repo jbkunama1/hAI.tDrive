@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  tdrive:
+    image: ghcr.io/jbkunama1/hai.tdrive:latest
+    container_name: tdrive
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - JWT_SECRET=change-me-to-a-long-random-string
+      - PASSWORD_HASH=change-me-bcrypt-hash
+      - TELEGRAM_DRIVE_BASE_URL=http://telegram-drive:8550/api/v1
+      - TELEGRAM_DRIVE_API_KEY=change-me-telegram-drive-api-key
+      - PORT=8080
+    networks:
+      - tdrive-net
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  tdrive-net:
+    driver: bridge
+    external: false
