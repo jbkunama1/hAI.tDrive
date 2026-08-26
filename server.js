@@ -2,7 +2,6 @@
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -22,12 +21,13 @@ if (!TELEGRAM_DRIVE_API_KEY) {
   console.warn('WARN: TELEGRAM_DRIVE_API_KEY not set - REST calls will fail.');
 }
 
-// tDrive Passwort (Single-User)
-const PASSWORD_HASH = process.env.PASSWORD_HASH || null;
-// bcrypt-Hash generieren: node -e "require('bcryptjs').hash('DEIN_PASSWORT', 10).then(console.log)"
+// tRive Passwort (Single-User, Klartext-Vergleich)
+// Bewusst kein Hashing mehr, um ENV-Escaping-Probleme mit $-Zeichen zu vermeiden.
+// Absicherung des Docker-Hosts liegt in der Verantwortung des Betreibers.
+const PASSWORD = process.env.PASSWORD || null;
 
-if (!PASSWORD_HASH) {
-  console.warn('WARN: Kein PASSWORD_HASH gesetzt. Setze ENV PASSWORD_HASH mit bcrypt-Hash!');
+if (!PASSWORD) {
+  console.warn('WARN: Kein PASSWORD gesetzt. Setze ENV PASSWORD mit deinem tRive-Login-Passwort!');
 }
 
 // ====== MIDDLEWARE ======
@@ -136,12 +136,11 @@ app.post('/api/login', async (req, res) => {
   if (!password) {
     return res.status(400).json({ error: 'Password required' });
   }
-  if (!PASSWORD_HASH) {
-    return res.status(500).json({ error: 'PASSWORD_HASH not configured on server' });
+  if (!PASSWORD) {
+    return res.status(500).json({ error: 'PASSWORD not configured on server' });
   }
 
-  const match = await bcrypt.compare(password, PASSWORD_HASH);
-  if (!match) {
+  if (password !== PASSWORD) {
     return res.status(401).json({ error: 'Invalid password' });
   }
 

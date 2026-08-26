@@ -2,12 +2,11 @@
   "name": "tdrive-backend",
   "version": "1.0.0",
   "type": "module",
-  "description": "tDrive backend - REST bridge between tDrive frontend and Telegram-Drive REST API",
+  "description": "tRive backend - REST bridge between tRive frontend and Telegram-Drive (tDrive) REST API",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.19.0",
     "jsonwebtoken": "^9.0.0",
