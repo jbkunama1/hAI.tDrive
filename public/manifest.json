@@ -1,7 +1,7 @@
 {
-  "name": "tDrive",
-  "short_name": "tDrive",
-  "description": "tDrive - Dein Telegram Cloud Drive, GDrive-Style Oberflaeche",
+  "name": "tRive",
+  "short_name": "tRive",
+  "description": "tRive - Dein Cloud-Drive-Frontend fuer Telegram-Drive (tDrive)",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
