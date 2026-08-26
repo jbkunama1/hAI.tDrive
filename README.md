@@ -62,7 +62,7 @@ tRive und der tDrive-Container muessen im selben externen Docker-Netzwerk
 
 | | Feature |
 |---|---|
-| 🔐 | Passwort-Login (bcryptjs + JWT) |
+| 🔐 | Passwort-Login (JWT-Session) |
 | 📁 | Dateien listen, hochladen, herunterladen, loeschen |
 | 🔍 | Suche, Sortierung, Ordner-Navigation mit Breadcrumbs |
 | 🖱️ | Kontextmenue: Umbenennen, Verschieben, Kopieren, Share-Link |
@@ -93,19 +93,16 @@ tRive und der tDrive-Container muessen im selben externen Docker-Netzwerk
 | Variable | Beschreibung | Beispiel |
 | --- | --- | --- |
 | 🔒 `JWT_SECRET` | Langer zufaelliger String fuer Token-Signierung | `openssl rand -hex 32` |
-| 🔑 `PASSWORD_HASH` | bcrypt-Hash deines tRive-Passworts (inkl. aller `$`-Zeichen) | `$2a$10$....` |
+| 🔑 `PASSWORD` | Dein tRive-Login-Passwort im **Klartext** | `meinSicheresPasswort123` |
 | 📡 `TELEGRAM_DRIVE_BASE_URL` | Basis-URL der tDrive-REST-API | `http://telegram-drive:8550/api/v1` |
 | 🗝️ `TELEGRAM_DRIVE_API_KEY` | API-Key aus den tDrive-Einstellungen | dein Key |
 
-### 🧮 Passwort-Hash erzeugen
-
-```bash
-node -e "require('bcryptjs').hash('DEIN_PASSWORT', 10).then(console.log)"
-```
-
-Den kompletten Output (inkl. aller `$`) 1:1 in das Portainer-Feld "Environment variables"
-unter `PASSWORD_HASH` eintragen. Kein manuelles Escaping noetig, da es sich um das
-native Portainer-ENV-Feld handelt, nicht um eine Bash- oder YAML-Interpolation.
+> ⚠️ **Sicherheitshinweis:** `PASSWORD` wird bewusst als Klartext gespeichert (kein
+> bcrypt-Hash mehr), um ENV-Escaping-Probleme mit `$`-Zeichen in Portainer/Docker
+> Compose zu vermeiden. Das Passwort ist damit fuer jeden mit Zugriff auf den
+> Docker-Host (z. B. via `docker inspect tdrive`) einsehbar. Sorge entsprechend
+> fuer die Absicherung deines Docker-Hosts (SSH-Zugang, Firewall, keine
+> unautorisierten Nutzer).
 
 ---
 
@@ -146,37 +143,52 @@ docker network create highfishNetwork
 ## 🩺 Troubleshooting
 
 <details>
-<summary>❌ Docker-Build schlaegt bei <code>npm install</code> fehl (bcrypt)</summary>
+<summary>❌ Docker-Build schlaegt bei <code>npm install</code> fehl</summary>
 
 ```
-npm error code ETARGET ... oder ... gyp ERR! build error
+npm error notarget No matching version found for multer@^1.4.5
 ```
-
-**Ursache:** Das native `bcrypt`-Paket braucht Build-Tools (`python3`, `make`, `g++`),
-die im `node:22-alpine`-Image fehlen.
-
-**Fix:** Wechsel auf `bcryptjs` (reines JavaScript, keine Kompilierung). Pruefe
-`package.json` auf `"bcryptjs"` statt `"bcrypt"`.
-</details>
-
-<details>
-<summary>❌ <code>npm error notarget No matching version found for multer@^1.4.5</code></summary>
 
 **Ursache:** `multer@1.4.5` existiert nicht in der npm-Registry (nur `1.4.5-lts.x`
 als Sondertags). Zusaetzlich hat Multer 1.x bekannte DoS-Schwachstellen.
 
-**Fix:** Bump auf `"multer": "^2.1.0"` in `package.json` (API-kompatibel, keine
-Codeaenderung in `server.js` noetig).
+**Fix:** `"multer": "^2.1.0"` in `package.json` (API-kompatibel, bereits im Repo
+umgesetzt).
 </details>
 
 <details>
-<summary>⚠️ Environment-Variablen werden nicht uebernommen (<code>PASSWORD_HASH=change-me-bcrypt-hash</code>)</summary>
+<summary>⚠️ Login schlaegt fehl trotz gesetztem Passwort (<code>{"error":"Invalid password"}</code>)</summary>
 
-Wenn `docker exec tdrive env | grep PASSWORD_HASH` weiterhin den Platzhalter aus der
+Pruefe zuerst, ob das ENV `PASSWORD` korrekt im Container ankommt:
+
+```bash
+docker exec tdrive sh -c 'echo -n "$PASSWORD" | wc -c'
+```
+
+Die Laenge sollte exakt der Laenge deines eingetragenen Passworts entsprechen.
+Falls die Zahl kleiner ist als erwartet, wurde der Wert beim Eintragen in
+Portainer abgeschnitten - pruefe das "Environment variables"-Feld erneut und
+achte auf fuehrende/folgende Leerzeichen.
+
+Anschliessend direkt testen:
+
+```bash
+curl -X POST http://localhost:8080/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"password":"DEIN_PASSWORT"}'
+```
+
+Erwartete Antwort: `{"token":"..."}`.
+</details>
+
+<details>
+<summary>⚠️ Environment-Variablen werden nicht uebernommen (Platzhalter bleibt stehen)</summary>
+
+Wenn `docker exec tdrive env` weiterhin einen Platzhalter aus der
 `docker-compose.yml` zeigt, obwohl im Portainer-"Environment variables"-Feld ein
 echter Wert eingetragen ist:
 
-1. ✅ Pruefen, ob die `docker-compose.yml` echte Referenzen wie `PASSWORD_HASH=${PASSWORD_HASH}`
+1. ✅ Pruefen, ob die `docker-compose.yml` echte Referenzen wie `PASSWORD=${PASSWORD}`
    enthaelt und nicht einen hartkodierten String.
 2. ✅ Pruefen, ob der Stack als **Git repository** oder **Web editor** angelegt ist.
    Bei einem Git-Repository-Stack wird die YAML bei jedem Deploy neu aus GitHub
@@ -185,25 +197,29 @@ echter Wert eingetragen ist:
 </details>
 
 <details>
-<summary>🔌 <code>ECONNREFUSED</code> beim Verbindungsversuch zu <code>TELEGRAM_DRIVE_BASE_URL</code></summary>
+<summary>🔌 <code>ECONNREFUSED</code> / <code>ETIMEDOUT</code> bei <code>TELEGRAM_DRIVE_BASE_URL</code></summary>
 
 ```
 Error: connect ECONNREFUSED <ip>:8550
+Error: AggregateError [ETIMEDOUT]
 ```
 
 Moegliche Ursachen, in Reihenfolge der Wahrscheinlichkeit:
 
-1. 🔒 Die tDrive-REST-API bindet nur an `127.0.0.1` innerhalb ihres eigenen
+1. 🌐 `TELEGRAM_DRIVE_BASE_URL` zeigt auf die **oeffentliche Domain** statt auf den
+   **internen Container-Namen** - fuer die Container-zu-Container-Kommunikation
+   im selben Docker-Netzwerk sollte immer der interne Name genutzt werden, z. B.
+   `http://telegram-drive:8550/api/v1`, nicht `http://tdrive.arbeitermili.eu:8550/...`.
+2. 🔒 Die tDrive-REST-API bindet nur an `127.0.0.1` innerhalb ihres eigenen
    Containers und ist daher aus anderen Containern nicht erreichbar.
-2. 🚪 Port `8550` ist im `hAI.TelegramDrivePortainer`-Stack nicht exposed/gemappt.
-3. 🔗 tRive und tDrive haengen nicht im selben Docker-Netzwerk (`highfishNetwork`).
-4. 🌐 `TELEGRAM_DRIVE_BASE_URL` zeigt auf eine oeffentliche Domain statt auf den
-   internen Container-Namen.
+3. 🚪 Port `8550` ist im `hAI.TelegramDrivePortainer`-Stack nicht exposed/gemappt.
+4. 🔗 tRive und tDrive haengen nicht im selben Docker-Netzwerk (`highfishNetwork`).
 
 **Diagnose:**
 
 ```bash
 docker network inspect highfishNetwork
+docker ps --format "{{.Names}}"
 docker exec -it tdrive sh
 wget -qO- http://telegram-drive:8550/api/v1/health
 ```

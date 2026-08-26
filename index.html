@@ -129,6 +129,18 @@
   }
   .arch .step { color: var(--text-main); font-weight: 600; }
 
+  .notice {
+    max-width: 780px;
+    margin: 0 auto 2.5rem;
+    padding: 1rem 1.4rem;
+    border-radius: 14px;
+    background: rgba(255,184,76,0.1);
+    border: 1px solid rgba(255,184,76,0.35);
+    font-size: 0.85rem;
+    color: #ffd9a0;
+    text-align: left;
+  }
+
   footer {
     text-align: center;
     padding: 2.5rem 1.5rem 3rem;
@@ -160,7 +172,7 @@
       <div class="badges">
         <span class="badge">🐳 Docker + GHCR</span>
         <span class="badge">⚙️ GitHub Actions CI/CD</span>
-        <span class="badge">🔐 JWT + bcryptjs Auth</span>
+        <span class="badge">🔐 JWT-Session-Auth</span>
         <span class="badge">📡 tDrive REST API</span>
         <span class="badge">🌈 Modern &amp; Animiert</span>
       </div>
@@ -172,13 +184,20 @@
     </div>
   </section>
 
+  <div class="notice">
+    ⚠️ <strong>Hinweis:</strong> tRive nutzt aktuell ein einfaches Klartext-Passwort
+    (ENV-Variable <code>PASSWORD</code>) statt eines gehashten Passworts, um
+    Escaping-Probleme mit <code>$</code>-Zeichen in Docker-Compose-Umgebungen zu
+    vermeiden. Bitte den Docker-Host entsprechend absichern (siehe README).
+  </div>
+
   <section class="section">
     <h2>✨ Features</h2>
     <div class="grid">
       <div class="card">
         <div class="card-icon">🔐</div>
         <h3>Passwort-Login</h3>
-        <p>Sicherer Zugriff via bcryptjs-Hash und JWT-Session-Tokens.</p>
+        <p>Zugriff via Passwort und JWT-Session-Tokens.</p>
       </div>
       <div class="card">
         <div class="card-icon">📁</div>
