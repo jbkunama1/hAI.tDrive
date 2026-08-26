@@ -8,10 +8,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - JWT_SECRET=change-me-to-a-long-random-string
-      - PASSWORD_HASH=change-me-bcrypt-hash
-      - TELEGRAM_DRIVE_BASE_URL=http://telegram-drive:8550/api/v1
-      - TELEGRAM_DRIVE_API_KEY=change-me-telegram-drive-api-key
+      - JWT_SECRET=${JWT_SECRET}
+      - PASSWORD_HASH=${PASSWORD_HASH}
+      - TELEGRAM_DRIVE_BASE_URL=${TELEGRAM_DRIVE_BASE_URL}
+      - TELEGRAM_DRIVE_API_KEY=${TELEGRAM_DRIVE_API_KEY}
       - PORT=8080
     networks:
       - highfishNetwork
