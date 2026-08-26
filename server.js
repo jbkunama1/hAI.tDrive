@@ -235,13 +235,13 @@ app.get('/api/download/:id', authMiddleware, async (req, res) => {
     const contentType = tgRes.headers.get('content-type') || 'application/octet-stream';
     const disposition = tgRes.headers.get('content-disposition') || '';
     let filename = 'download.bin';
-    const match = disposition.match(/filename="?([^"]+)"?/);
+    const match = disposition.match(/filename=\"?([^\"]+)\"?/);
     if (match) filename = match[1];
 
-    const buffer = Buffer.from(await tgRes.arrayBuffer());
+    // Stream the file directly instead of buffering it in memory
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(buffer);
+    tgRes.body.pipe(res);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Download failed', details: err.message });
