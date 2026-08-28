@@ -76,28 +76,41 @@ app.get('/', (req, res) => {
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
-                <title>tRive - Dashboard & File Manager</title>
+                <title>tRive - File & Folder Manager</title>
                 <style>
                     body { font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 40px; margin: 0; }
-                    .container { max-width: 800px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-                    h2 { color: #38bdf8; }
-                    input, button { padding: 10px; margin: 5px 0; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; }
+                    .container { max-width: 900px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+                    h2, h3 { color: #38bdf8; }
+                    input, button, textarea { padding: 10px; margin: 5px 0; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; box-sizing: border-box; }
                     button { background: #0ea5e9; cursor: pointer; font-weight: bold; border: none; }
                     button:hover { background: #0284c7; }
+                    .danger { background: #ef4444; }
+                    .danger:hover { background: #dc2626; }
                     ul { list-style: none; padding: 0; }
-                    li { padding: 10px; margin: 5px 0; background: #0f172a; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+                    li { padding: 12px; margin: 8px 0; background: #0f172a; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+                    .actions { display: flex; gap: 8px; align-items: center; }
                     a { color: #38bdf8; text-decoration: none; }
                 </style>
             </head>
             <body>
                 <div class="container">
-                    <h2>🚀 tRive File & Folder Manager</h2>
-                    <div>
-                        <h3>Create Folder</h3>
-                        <form action="/api/folders" method="POST">
-                            <input type="text" name="folderName" placeholder="Folder Name" required>
-                            <button type="submit">Create Folder</button>
-                        </form>
+                    <h2>🚀 tRive Advanced File Manager</h2>
+                    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <h4>Create Folder</h4>
+                            <form action="/api/folders" method="POST">
+                                <input type="text" name="folderName" placeholder="Folder Name" required>
+                                <button type="submit">Create</button>
+                            </form>
+                        </div>
+                        <div>
+                            <h4>Create / Edit File</h4>
+                            <form action="/api/files/save" method="POST">
+                                <input type="text" name="fileName" placeholder="filename.txt" required>
+                                <textarea name="content" placeholder="File content..." rows="2" style="width:100%;"></textarea>
+                                <button type="submit">Save File</button>
+                            </form>
+                        </div>
                     </div>
                     <div>
                         <h3>Files & Folders</h3>
@@ -111,11 +124,21 @@ app.get('/', (req, res) => {
                             const list = document.getElementById('file-list');
                             items.forEach(item => {
                                 const li = document.createElement('li');
-                                li.innerHTML = \`<span>\${item.isDir ? '📁' : '📄'} \${item.name}</span>\` +
-                                    (item.isDir ? '' : \`<a href="/api/download?file=\${encodeURIComponent(item.name)}">Download</a>\`);
+                                li.innerHTML = \`<span>\${item.isDir ? '📁' : '📄'} <b>\${item.name}</b></span>\` +
+                                    \`<div class="actions">\` +
+                                    (!item.isDir ? \`<a href="/api/download?file=\${encodeURIComponent(item.name)}">Download</a>\` : '') +
+                                    \`<button class="danger" onclick="deleteItem('\${item.name}')">Delete</button>\` +
+                                    \`</div>\`;
                                 list.appendChild(li);
                             });
                         });
+
+                    function deleteItem(name) {
+                        if (confirm('Are you sure you want to delete ' + name + '?')) {
+                            fetch('/api/files?name=' + encodeURIComponent(name), { method: 'DELETE' })
+                                .then(() => location.reload());
+                        }
+                    }
                 </script>
             </body>
             </html>
@@ -158,6 +181,15 @@ app.post('/api/folders', (req, res) => {
     res.redirect('/');
 });
 
+// API to save/edit file
+app.post('/api/files/save', (req, res) => {
+    const { fileName, content } = req.body;
+    if (!fileName) return res.status(400).send('File name required');
+    const filePath = path.join(STORAGE_DIR, fileName);
+    fs.writeFileSync(filePath, content || '');
+    res.redirect('/');
+});
+
 // API to download file
 app.get('/api/download', (req, res) => {
     const fileName = req.query.file;
@@ -167,6 +199,24 @@ app.get('/api/download', (req, res) => {
         res.download(filePath);
     } else {
         res.status(404).send('File not found');
+    }
+});
+
+// API to delete file or folder
+app.delete('/api/files', (req, res) => {
+    const name = req.query.name;
+    if (!name) return res.status(400).send('Name required');
+    const targetPath = path.join(STORAGE_DIR, name);
+    if (fs.existsSync(targetPath)) {
+        const stat = fs.statSync(targetPath);
+        if (stat.isDirectory()) {
+            fs.rmSync(targetPath, { recursive: true, force: true });
+        } else {
+            fs.unlinkSync(targetPath);
+        }
+        res.sendStatus(200);
+    } else {
+        res.status(404).send('Not found');
     }
 });
 
