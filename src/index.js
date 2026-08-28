@@ -79,23 +79,23 @@ app.get('/', (req, res) => {
                 <title>tRive - File & Folder Manager</title>
                 <style>
                     body { font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 40px; margin: 0; }
-                    .container { max-width: 900px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-                    h2, h3 { color: #38bdf8; }
-                    input, button, textarea { padding: 10px; margin: 5px 0; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; box-sizing: border-box; }
+                    .container { max-width: 950px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+                    h2, h3, h4 { color: #38bdf8; }
+                    input, button, textarea { padding: 8px; margin: 4px 0; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; box-sizing: border-box; }
                     button { background: #0ea5e9; cursor: pointer; font-weight: bold; border: none; }
                     button:hover { background: #0284c7; }
                     .danger { background: #ef4444; }
                     .danger:hover { background: #dc2626; }
                     ul { list-style: none; padding: 0; }
                     li { padding: 12px; margin: 8px 0; background: #0f172a; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
-                    .actions { display: flex; gap: 8px; align-items: center; }
+                    .actions { display: flex; gap: 6px; align-items: center; }
                     a { color: #38bdf8; text-decoration: none; }
                 </style>
             </head>
             <body>
                 <div class="container">
-                    <h2>🚀 tRive Advanced File Manager</h2>
-                    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                    <h2>🚀 tRive Complete File Manager</h2>
+                    <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
                         <div>
                             <h4>Create Folder</h4>
                             <form action="/api/folders" method="POST">
@@ -104,11 +104,11 @@ app.get('/', (req, res) => {
                             </form>
                         </div>
                         <div>
-                            <h4>Create / Edit File</h4>
+                            <h4>Save / Edit File</h4>
                             <form action="/api/files/save" method="POST">
                                 <input type="text" name="fileName" placeholder="filename.txt" required>
-                                <textarea name="content" placeholder="File content..." rows="2" style="width:100%;"></textarea>
-                                <button type="submit">Save File</button>
+                                <textarea name="content" placeholder="Content..." rows="2" style="width:100%;"></textarea>
+                                <button type="submit">Save</button>
                             </form>
                         </div>
                     </div>
@@ -127,6 +127,8 @@ app.get('/', (req, res) => {
                                 li.innerHTML = \`<span>\${item.isDir ? '📁' : '📄'} <b>\${item.name}</b></span>\` +
                                     \`<div class="actions">\` +
                                     (!item.isDir ? \`<a href="/api/download?file=\${encodeURIComponent(item.name)}">Download</a>\` : '') +
+                                    \`<button onclick="copyItem('\${item.name}')">Copy</button>\` +
+                                    \`<button onclick="moveItem('\${item.name}')">Move/Rename</button>\` +
                                     \`<button class="danger" onclick="deleteItem('\${item.name}')">Delete</button>\` +
                                     \`</div>\`;
                                 list.appendChild(li);
@@ -134,9 +136,31 @@ app.get('/', (req, res) => {
                         });
 
                     function deleteItem(name) {
-                        if (confirm('Are you sure you want to delete ' + name + '?')) {
+                        if (confirm('Delete ' + name + '?')) {
                             fetch('/api/files?name=' + encodeURIComponent(name), { method: 'DELETE' })
                                 .then(() => location.reload());
+                        }
+                    }
+
+                    function copyItem(name) {
+                        const newName = prompt('Copy ' + name + ' to new name:', name + '.copy');
+                        if (newName) {
+                            fetch('/api/files/copy', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ src: name, dest: newName })
+                            }).then(() => location.reload());
+                        }
+                    }
+
+                    function moveItem(name) {
+                        const newName = prompt('Move/Rename ' + name + ' to:', name);
+                        if (newName) {
+                            fetch('/api/files/move', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ src: name, dest: newName })
+                            }).then(() => location.reload());
                         }
                     }
                 </script>
@@ -199,6 +223,39 @@ app.get('/api/download', (req, res) => {
         res.download(filePath);
     } else {
         res.status(404).send('File not found');
+    }
+});
+
+// API to copy file or folder
+app.post('/api/files/copy', (req, res) => {
+    const { src, dest } = req.body;
+    if (!src || !dest) return res.status(400).send('Source and destination required');
+    const srcPath = path.join(STORAGE_DIR, src);
+    const destPath = path.join(STORAGE_DIR, dest);
+    if (fs.existsSync(srcPath)) {
+        const stat = fs.statSync(srcPath);
+        if (stat.isDirectory()) {
+            fs.cpSync(srcPath, destPath, { recursive: true });
+        } else {
+            fs.copyFileSync(srcPath, destPath);
+        }
+        res.sendStatus(200);
+    } else {
+        res.status(404).send('Source not found');
+    }
+});
+
+// API to move/rename file or folder
+app.post('/api/files/move', (req, res) => {
+    const { src, dest } = req.body;
+    if (!src || !dest) return res.status(400).send('Source and destination required');
+    const srcPath = path.join(STORAGE_DIR, src);
+    const destPath = path.join(STORAGE_DIR, dest);
+    if (fs.existsSync(srcPath)) {
+        fs.renameSync(srcPath, destPath);
+        res.sendStatus(200);
+    } else {
+        res.status(404).send('Source not found');
     }
 });
 
