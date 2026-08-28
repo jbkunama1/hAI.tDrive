@@ -8,6 +8,13 @@ app.use(express.urlencoded({ extended: true }));
 
 const CONFIG_FILE = path.join(__dirname, '../config.json');
 
+// Check if critical env vars are set (Portainer/docker scenario)
+const HAS_ENV_CONFIG = !!(
+    process.env.PASSWORD ||
+    process.env.JWT_SECRET ||
+    process.env.TELEGRAM_DRIVE_API_KEY
+);
+
 function loadConfig() {
     if (fs.existsSync(CONFIG_FILE)) {
         try {
@@ -26,7 +33,7 @@ function saveConfig(config) {
 // Admin Setup & UI Route
 app.get('/', (req, res) => {
     const config = loadConfig();
-    const needsSetup = !config.initialized;
+    const needsSetup = !HAS_ENV_CONFIG && !config.initialized;
 
     if (needsSetup) {
         res.send(`
@@ -93,6 +100,9 @@ app.get('/', (req, res) => {
 });
 
 app.post('/setup', (req, res) => {
+    if (HAS_ENV_CONFIG) {
+        return res.status(403).send('Setup is disabled when environment variables are provided.');
+    }
     const { password, jwt, port, apiServer, apiKey } = req.body;
     const config = {
         initialized: true,
