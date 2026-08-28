@@ -3,15 +3,15 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run build --if-present
+RUN mkdir -p dist && echo '/* plain JS */' > dist/index.js
 
 FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --production
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/src ./src
 
 ENV PORT=3000
 EXPOSE 3000
-CMD ["node", "dist/index.js"]
+CMD ["node", "src/index.js"]
