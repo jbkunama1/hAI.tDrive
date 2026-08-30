@@ -120,6 +120,9 @@ async function tgDriveStream(pathname, { method = 'GET', query = {} } = {}) {
 
 // ====== ROUTES: AUTH & HEALTH ======
 
+app.get('/login', (req, res) => res.redirect('/'));
+app.get('/admin', (req, res) => res.redirect('/'));
+
 app.get('/api/health', async (req, res) => {
   try {
     const health = await fetch(TELEGRAM_DRIVE_BASE_URL + '/health'); // /health ohne API-Key erlaubt
